@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: iwc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: woodcarver
+      POSTGRES_USER: iwc
+      POSTGRES_PASSWORD: iwc_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - iwc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iwc -d woodcarver"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: iwc-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://iwc:iwc_dev_password@postgres:5432/woodcarver
+      JWT_SECRET: change-this-in-cloud-deployments
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:8080
+      NODE_ENV: production
+      APP_BASE_URL: http://localhost:8080
+    ports:
+      - "3001:3001"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: iwc-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  iwc_pgdata:
