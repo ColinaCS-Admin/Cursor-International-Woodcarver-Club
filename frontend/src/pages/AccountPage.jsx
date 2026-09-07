@@ -6,6 +6,8 @@ const FIELDS = [
   ["member_first_name", "First name"],
   ["member_middle_name", "Middle name"],
   ["member_last_name", "Last name"],
+  ["gender", "Gender"],
+  ["preferred_language_code", "Preferred language"],
   ["email_address", "Email address"],
   ["telephone_number_1", "Telephone number 1"],
   ["telephone_number_2", "Telephone number 2"],
@@ -30,6 +32,9 @@ function display(member, key) {
   }
   if (key === "state_province_code" && member.state_province_desc) {
     return `${member.state_province_code} · ${member.state_province_desc}`;
+  }
+  if (key === "preferred_language_code" && member.preferred_language_desc) {
+    return `${member.preferred_language_code} · ${member.preferred_language_desc}`;
   }
   if (key === "country_code" && member.country_desc) {
     return `${member.country_code} · ${member.country_desc}`;

@@ -7,6 +7,8 @@ const COLUMNS = [
   ["member_first_name", "First name"],
   ["member_middle_name", "Middle name"],
   ["member_last_name", "Last name"],
+  ["gender", "Gender"],
+  ["preferred_language_code", "Preferred language"],
   ["email_address", "Email"],
   ["telephone_number_1", "Telephone 1"],
   ["telephone_number_2", "Telephone 2"],
@@ -81,6 +83,10 @@ export default function MemberListingPage() {
                         <option value="N">N · Inactive</option>
                         <option value="S">S · Suspended</option>
                       </select>
+                    ) : key === "preferred_language_code" ? (
+                      member.preferred_language_desc
+                        ? `${member.preferred_language_code} · ${member.preferred_language_desc}`
+                        : member.preferred_language_code || "—"
                     ) : key === "telephone_number_1" ? (
                       `${member.telephone_number_1} (${member.telephone_number_1_type})`
                     ) : key === "telephone_number_2" ? (

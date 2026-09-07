@@ -4,6 +4,7 @@ export const PHONE_TYPES = ["Mobile", "Landline"];
 export const ACTIVE_VALUES = ["Y", "N", "S"];
 export const ACTIVE_LABELS = { Y: "Active", N: "Inactive", S: "Suspended" };
 export const TIER_CODES = ["Basic", "Advanced", "Lifetime"];
+export const GENDER_VALUES = ["Male", "Female", "Do Not Wish To Disclose"];
 
 export function mapMember(row) {
   return {
@@ -12,6 +13,9 @@ export function mapMember(row) {
     member_first_name: row.member_first_name,
     member_middle_name: row.member_middle_name,
     member_last_name: row.member_last_name,
+    gender: row.gender,
+    preferred_language_code: row.preferred_language_code,
+    preferred_language_desc: row.preferred_language_desc,
     email_address: row.email_address,
     telephone_number_1: row.telephone_number_1,
     telephone_number_1_type: row.telephone_number_1_type,
@@ -43,6 +47,8 @@ export async function validateMemberPayload(payload, { requirePassword = false }
     ["member_alias", "Member alias"],
     ["member_first_name", "First name"],
     ["member_last_name", "Last name"],
+    ["gender", "Gender"],
+    ["preferred_language_code", "Preferred language"],
     ["email_address", "Email address"],
     ["telephone_number_1", "Telephone number 1"],
     ["telephone_number_1_type", "Telephone number 1 type"],
@@ -60,6 +66,19 @@ export async function validateMemberPayload(payload, { requirePassword = false }
 
   if (payload.email_address && !EMAIL_RE.test(String(payload.email_address).trim())) {
     errors.push("Email address is not valid.");
+  }
+
+  if (payload.gender && !GENDER_VALUES.includes(payload.gender)) {
+    errors.push('Gender must be "Male", "Female", or "Do Not Wish To Disclose".');
+  }
+
+  if (payload.preferred_language_code) {
+    const language = await query("SELECT 1 FROM language WHERE language_code = $1", [
+      String(payload.preferred_language_code).trim().toLowerCase(),
+    ]);
+    if (!language.rows.length) {
+      errors.push("Preferred language must be a valid ISO 639-2 language code.");
+    }
   }
 
   if (payload.telephone_number_1_type && !PHONE_TYPES.includes(payload.telephone_number_1_type)) {

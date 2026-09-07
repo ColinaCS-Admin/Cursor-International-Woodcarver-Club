@@ -68,6 +68,32 @@ export default function MemberForm({ form, setForm, lookups, includePassword }) 
         />
       </label>
       <label className="field">
+        <span className="required">Gender</span>
+        <select value={form.gender} onChange={(e) => update("gender", e.target.value)} required>
+          <option value="">Select gender</option>
+          {(lookups.genders || []).map((gender) => (
+            <option key={gender} value={gender}>
+              {gender}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span className="required">Preferred language</span>
+        <select
+          value={form.preferred_language_code}
+          onChange={(e) => update("preferred_language_code", e.target.value)}
+          required
+        >
+          <option value="">Select language</option>
+          {(lookups.languages || []).map((language) => (
+            <option key={language.language_code} value={language.language_code}>
+              {language.language_desc} ({language.language_code})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
         <span className="required">Email address</span>
         <input
           type="email"

@@ -9,16 +9,18 @@ const router = Router();
 const MEMBER_SELECT = `
   SELECT
     m.member_id, m.member_alias, m.member_first_name, m.member_middle_name,
-    m.member_last_name, m.email_address, m.telephone_number_1, m.telephone_number_1_type,
+    m.member_last_name, m.gender, m.preferred_language_code, m.email_address,
+    m.telephone_number_1, m.telephone_number_1_type,
     m.telephone_number_2, m.telephone_number_2_type, m.address_line_1, m.address_line_2,
     m.city, m.zip_code, m.state_province_code, m.country_code, m.craft_skill_code,
     m.member_tier_code, m.active_ind, m.role,
     cs.craft_skill_desc, mt.member_tier_desc,
-    c.country_desc, sp.state_province_desc
+    c.country_desc, sp.state_province_desc, lang.language_desc AS preferred_language_desc
   FROM member m
   JOIN craft_skill cs ON cs.craft_skill_code = m.craft_skill_code
   JOIN membership_tier mt ON mt.member_tier_code = m.member_tier_code
   JOIN country c ON c.country_code = m.country_code
+  JOIN language lang ON lang.language_code = m.preferred_language_code
   LEFT JOIN state_province sp ON sp.state_province_code = m.state_province_code
 `;
 

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { query } from "../db.js";
+import { GENDER_VALUES } from "../memberFields.js";
 
 const router = Router();
 
@@ -61,6 +62,22 @@ router.get("/tiers", async (_req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Unable to load membership tiers." });
+  }
+});
+
+router.get("/genders", (_req, res) => {
+  res.json({ genders: GENDER_VALUES });
+});
+
+router.get("/languages", async (_req, res) => {
+  try {
+    const result = await query(
+      "SELECT language_code, language_desc FROM language ORDER BY language_desc, language_code"
+    );
+    res.json({ languages: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Unable to load languages." });
   }
 });
 

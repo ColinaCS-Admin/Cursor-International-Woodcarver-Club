@@ -25,12 +25,19 @@ CREATE TABLE IF NOT EXISTS craft_skill (
   craft_skill_desc VARCHAR(255) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS language (
+  language_code VARCHAR(3) PRIMARY KEY,
+  language_desc VARCHAR(150) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS member (
   member_id BIGSERIAL PRIMARY KEY,
   member_alias VARCHAR(50) NOT NULL UNIQUE,
   member_first_name VARCHAR(100) NOT NULL,
   member_middle_name VARCHAR(100),
   member_last_name VARCHAR(100) NOT NULL,
+  gender VARCHAR(32) NOT NULL CHECK (gender IN ('Male', 'Female', 'Do Not Wish To Disclose')),
+  preferred_language_code VARCHAR(3) NOT NULL REFERENCES language(language_code),
   email_address VARCHAR(255) NOT NULL UNIQUE,
   telephone_number_1 VARCHAR(30) NOT NULL,
   telephone_number_1_type VARCHAR(10) NOT NULL CHECK (telephone_number_1_type IN ('Mobile', 'Landline')),

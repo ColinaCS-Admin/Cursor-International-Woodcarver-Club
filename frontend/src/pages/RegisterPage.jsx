@@ -8,7 +8,13 @@ import MemberForm from "../components/MemberForm.jsx";
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [lookups, setLookups] = useState({ countries: [], craft_skills: [], tiers: [] });
+  const [lookups, setLookups] = useState({
+    countries: [],
+    craft_skills: [],
+    tiers: [],
+    genders: [],
+    languages: [],
+  });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -16,6 +22,8 @@ export default function RegisterPage() {
     member_first_name: "",
     member_middle_name: "",
     member_last_name: "",
+    gender: "",
+    preferred_language_code: "",
     email_address: "",
     password: "",
     telephone_number_1: "",
@@ -33,12 +41,14 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    Promise.all([api.countries(), api.craftSkills(), api.tiers()])
-      .then(([countries, skills, tiers]) => {
+    Promise.all([api.countries(), api.craftSkills(), api.tiers(), api.genders(), api.languages()])
+      .then(([countries, skills, tiers, genders, languages]) => {
         setLookups({
           countries: countries.countries,
           craft_skills: skills.craft_skills,
           tiers: tiers.tiers,
+          genders: genders.genders,
+          languages: languages.languages,
         });
       })
       .catch((err) => setError(err.message));

@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcryptjs";
 import { iso31661, iso31662 } from "iso-3166";
+import { iso6392 } from "iso-639-2";
 import { pool, query } from "./db.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -46,6 +47,72 @@ async function insertChunks(table, columns, rows, conflictSql) {
 export async function applySchema() {
   const sql = await fs.readFile(path.join(__dirname, "schema.sql"), "utf8");
   await pool.query(sql);
+  await seedLanguages();
+  await pool.query(`
+    ALTER TABLE member ADD COLUMN IF NOT EXISTS gender VARCHAR(32);
+    ALTER TABLE member ADD COLUMN IF NOT EXISTS preferred_language_code VARCHAR(3);
+    CREATE INDEX IF NOT EXISTS idx_member_language ON member (preferred_language_code);
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'member' AND column_name = 'preferred_language'
+      ) THEN
+        UPDATE member m
+        SET preferred_language_code = l.language_code
+        FROM language l
+        WHERE m.preferred_language_code IS NULL
+          AND lower(trim(m.preferred_language)) = lower(l.language_desc);
+      END IF;
+    END $$;
+  `);
+  await pool.query(`
+    UPDATE member SET gender = 'Do Not Wish To Disclose' WHERE gender IS NULL;
+    UPDATE member SET preferred_language_code = 'eng' WHERE preferred_language_code IS NULL;
+    ALTER TABLE member ALTER COLUMN gender SET NOT NULL;
+    ALTER TABLE member ALTER COLUMN preferred_language_code SET NOT NULL;
+    ALTER TABLE member DROP COLUMN IF EXISTS preferred_language;
+    UPDATE member SET gender = 'Female', preferred_language_code = 'eng' WHERE member_alias IN ('clubadmin', 'chipcarver', 'chainsawmaya');
+    UPDATE member SET gender = 'Male', preferred_language_code = 'eng' WHERE member_alias = 'oakcarver';
+    UPDATE member SET gender = 'Male', preferred_language_code = 'swe' WHERE member_alias = 'spoonwright';
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'member_gender_check'
+      ) THEN
+        ALTER TABLE member ADD CONSTRAINT member_gender_check
+          CHECK (gender IN ('Male', 'Female', 'Do Not Wish To Disclose'));
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'member_preferred_language_code_fkey'
+      ) THEN
+        ALTER TABLE member ADD CONSTRAINT member_preferred_language_code_fkey
+          FOREIGN KEY (preferred_language_code) REFERENCES language(language_code);
+      END IF;
+    END $$;
+  `);
+}
+
+export async function seedLanguages() {
+  const rows = [];
+  const seen = new Set();
+  for (const lang of iso6392) {
+    for (const code of [lang.iso6392B, lang.iso6392T]) {
+      if (!code || !/^[a-z]{3}$/i.test(code) || seen.has(code)) continue;
+      seen.add(code);
+      rows.push([code.toLowerCase(), lang.name]);
+    }
+  }
+  await insertChunks(
+    "language",
+    ["language_code", "language_desc"],
+    rows,
+    `ON CONFLICT (language_code) DO UPDATE SET language_desc = EXCLUDED.language_desc`
+  );
 }
 
 export async function seedIfNeeded() {
@@ -84,6 +151,8 @@ export async function seedAll() {
          state_province_desc = EXCLUDED.state_province_desc,
          country_code = EXCLUDED.country_code`
     );
+
+    await seedLanguages();
 
     const discounts = [
       ["Standard profile — no automatic discount"],
@@ -131,20 +200,20 @@ export async function seedAll() {
     await query(
       `INSERT INTO member (
          member_alias, member_first_name, member_middle_name, member_last_name,
-         email_address, telephone_number_1, telephone_number_1_type,
+         gender, preferred_language_code, email_address, telephone_number_1, telephone_number_1_type,
          telephone_number_2, telephone_number_2_type, address_line_1, address_line_2,
          city, zip_code, state_province_code, country_code, craft_skill_code,
          member_tier_code, active_ind, password_hash, role
        ) VALUES
-       ($1,'Helena','M.','Voss','admin@iwc.club','+1-206-555-0148','Mobile','+1-206-555-0190','Landline',
+       ($1,'Helena','M.','Voss','Female','eng','admin@iwc.club','+1-206-555-0148','Mobile','+1-206-555-0190','Landline',
         '18 Cedar Ridge Lane',NULL,'Seattle','98101','US-WA','US','RELIEF','Lifetime','Y',$2,'ADMIN'),
-       ($3,'Jonah',NULL,'Keller','member@iwc.club','+1-503-555-0172','Mobile',NULL,NULL,
+       ($3,'Jonah',NULL,'Keller','Male','eng','member@iwc.club','+1-503-555-0172','Mobile',NULL,NULL,
         '42 Maple Court','Apt 4','Portland','97201','US-OR','US','WILDLIFE','Advanced','Y',$4,'MEMBER'),
-       ('chipcarver','Amina','R.','Okoye','amina.okoye@iwc.club','+44-20-7946-0958','Landline',NULL,NULL,
+       ('chipcarver','Amina','R.','Okoye','Female','eng','amina.okoye@iwc.club','+44-20-7946-0958','Landline',NULL,NULL,
         '7 Carvers Walk',NULL,'London','SW1A 1AA','GB-LND','GB','CHIP','Basic','Y',$4,'MEMBER'),
-       ('spoonwright','Lars',NULL,'Lindqvist','lars.lindqvist@iwc.club','+46-8-555-0199','Mobile',NULL,NULL,
+       ('spoonwright','Lars',NULL,'Lindqvist','Male','swe','lars.lindqvist@iwc.club','+46-8-555-0199','Mobile',NULL,NULL,
         '12 Bjorkgatan',NULL,'Stockholm','111 20','SE-AB','SE','SPOON','Advanced','N',$4,'MEMBER'),
-       ('chainsawmaya','Maya',NULL,'Chen','maya.chen@iwc.club','+1-604-555-0133','Mobile',NULL,NULL,
+       ('chainsawmaya','Maya',NULL,'Chen','Female','eng','maya.chen@iwc.club','+1-604-555-0133','Mobile',NULL,NULL,
         '90 Granville Street',NULL,'Vancouver','V6C 1T2','CA-BC','CA','CHAINSAW','Lifetime','S',$4,'MEMBER')
        ON CONFLICT (email_address) DO NOTHING`,
       ["clubadmin", adminHash, "oakcarver", memberHash]

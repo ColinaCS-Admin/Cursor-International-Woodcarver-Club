@@ -60,4 +60,6 @@ export const api = {
   states: (country_code) => request(`/api/states?country_code=${encodeURIComponent(country_code)}`),
   craftSkills: () => request("/api/craft-skills"),
   tiers: () => request("/api/tiers"),
+  genders: () => request("/api/genders"),
+  languages: () => request("/api/languages"),
 };
